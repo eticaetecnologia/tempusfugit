@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -48,9 +51,21 @@ jobs:
       - name: Build debug APK
         run: cd android && ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk tempusfugit.apk
+
+      - name: Publish APK as GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: tempusfugit-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          tag_name: latest
+          name: "Tempus Fugit – última versão"
+          body: |
+            Versão mais recente do Tempus Fugit para Android.
+
+            **Instalação:**
+            1. Baixe o arquivo `tempusfugit.apk` abaixo
+            2. No Android, vá em Configurações → Segurança → Instalar apps desconhecidos
+            3. Abra o arquivo baixado e instale
+          files: tempusfugit.apk
+          prerelease: false
+          make_latest: true
