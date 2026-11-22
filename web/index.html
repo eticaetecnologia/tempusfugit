@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tempus Fugit</title>
+<script src="jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f5f1; --panel:#ffffff; --ink:#23241f; --muted:#6b6c64;
+    --accent:#2c5f5a; --accent-light:#e6efed; --border:#e1ddd3; --danger:#a3403a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); padding:12px 14px;
+    max-width:720px; margin:0 auto; padding-bottom:40px;
+  }
+  .header{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  .header svg{flex-shrink:0;}
+  h1{font-size:1.3rem;margin:0;}
+  .sub{color:var(--muted);font-size:.82rem;margin-bottom:14px;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  label{font-size:.78rem;color:var(--muted);display:block;margin-bottom:3px;}
+  input,select{
+    padding:9px 10px;border:1px solid var(--border);border-radius:7px;font-size:.95rem;
+    background:#fff;color:var(--ink);width:100%;
+  }
+  input[type=date]{min-width:140px;}
+  input[type=number]{max-width:90px;width:90px;}
+  input[type=checkbox]{width:auto;}
+  .field{display:flex;flex-direction:column;flex:1;min-width:120px;}
+  .field-sm{flex:0 0 auto;}
+  button{
+    padding:9px 14px;border:none;border-radius:7px;background:var(--accent);color:#fff;
+    font-size:.9rem;cursor:pointer;white-space:nowrap;
+  }
+  button.secondary{background:var(--accent-light);color:var(--accent);}
+  button.danger{background:#fbeae8;color:var(--danger);padding:5px 9px;font-size:.8rem;}
+  button:active{opacity:.8;}
+  .status{font-size:.78rem;color:var(--muted);margin-top:8px;}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:8px;}
+  th,td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--border);}
+  th{color:var(--muted);font-weight:600;font-size:.75rem;text-transform:uppercase;}
+  tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:none;}
+  .tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;}
+  .tabs button{background:transparent;color:var(--muted);border:1px solid var(--border);padding:6px 12px;font-size:.85rem;}
+  .tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .empty{color:var(--muted);font-size:.82rem;padding:8px 0;}
+  .entry-list{margin-top:6px;}
+  .entry-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:.88rem;}
+  .entry-item:last-child{border-bottom:none;}
+  .section-title{font-size:.85rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
+  .chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
+  .chip{padding:5px 10px;border-radius:20px;background:var(--accent-light);color:var(--accent);font-size:.8rem;cursor:pointer;border:1px solid transparent;}
+  .chip.selected{background:var(--accent);color:#fff;}
+  .export-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<!-- Cabeçalho -->
+<div class="header">
+  <svg width="34" height="34" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#1f4744"/>
+        <stop offset="1" stop-color="#2c5f5a"/>
+      </linearGradient>
+    </defs>
+    <rect width="100" height="100" rx="18" fill="url(#bg)"/>
+    <rect x="30" y="22" width="40" height="5" rx="2" fill="#f6f5f1"/>
+    <rect x="30" y="73" width="40" height="5" rx="2" fill="#f6f5f1"/>
+    <path d="M32,27 L68,27 L54,50 L68,73 L32,73 L46,50 Z" fill="none" stroke="#f6f5f1" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M36,31 L64,31 L52,46 L48,46 Z" fill="#e3a857"/>
+    <path d="M40,69 L60,69 L50,58 Z" fill="#e3a857"/>
+    <line x1="50" y1="47" x2="50" y2="59" stroke="#e3a857" stroke-width="1.6"/>
+  </svg>
+  <div>
+    <h1>Tempus Fugit</h1>
+    <p class="sub" style="margin:0;">Registro de horas de trabalho</p>
+  </div>
+</div>
+
+<!-- Controles de arquivo -->
+<div class="panel" id="fileControls">
+  <div class="section-title">Dados</div>
+  <div class="row">
+    <button class="secondary" id="exportMdBtn">Exportar .md</button>
+    <label class="secondary" style="display:inline-flex;align-items:center;padding:9px 14px;border-radius:7px;background:var(--accent-light);color:var(--accent);cursor:pointer;font-size:.9rem;">
+      Importar .md
+      <input type="file" id="importInput" accept=".md" style="display:none;">
+    </label>
+    <button class="danger" id="clearDataBtn">Limpar tudo</button>
+  </div>
+  <div id="statusLine" class="status"></div>
+</div>
+
+<!-- Registro do dia -->
+<div class="panel">
+  <div class="section-title">Registrar atividade</div>
+  <div class="field" style="margin-bottom:8px;max-width:200px;">
+    <label>Data</label>
+    <input type="date" id="refDate">
+  </div>
+  <div class="row" style="margin-bottom:6px;">
+    <div class="field">
+      <label>Atividade</label>
+      <input type="text" id="activityInput" list="activityList" placeholder="Ex: Reunião, Aula X...">
+      <datalist id="activityList"></datalist>
+    </div>
+    <div class="field-sm">
+      <label>Horas</label>
+      <input type="number" id="hoursInput" step="1" min="0" placeholder="0">
+    </div>
+    <div class="field-sm">
+      <label>Min</label>
+      <input type="number" id="minutesInput" step="5" min="0" max="59" placeholder="0">
+    </div>
+  </div>
+  <div class="field" style="margin-bottom:8px;">
+    <label>O que foi feito? <span style="font-weight:400;">(opcional)</span></label>
+    <input type="text" id="noteInput" placeholder="Ex: Introdução ao capítulo 3...">
+  </div>
+  <button id="addBtn">Adicionar</button>
+  <div id="dayEntries" class="entry-list"></div>
+</div>
+
+<!-- Quadro por período -->
+<div class="panel">
+  <div class="section-title">Quadro geral</div>
+  <div class="tabs" id="periodTabs">
+    <button data-period="dia" class="active">Dia</button>
+    <button data-period="semana">Semana</button>
+    <button data-period="mes">Mês</button>
+    <button data-period="semestre">Semestre</button>
+    <button data-period="ano">Ano</button>
+  </div>
+  <div id="periodLabel" class="sub"></div>
+  <div id="periodTable"></div>
+  <canvas id="periodChart" style="margin-top:12px;width:100%;display:none;"></canvas>
+</div>
+
+<!-- Exportar relatório -->
+<div class="panel">
+  <div class="section-title">Exportar relatório</div>
+
+  <div class="row" style="margin-bottom:8px;gap:12px;">
+    <div class="field">
+      <label>Período</label>
+      <select id="repPeriod">
+        <option value="dia">Dia</option>
+        <option value="semana">Semana</option>
+        <option value="mes" selected>Mês</option>
+        <option value="semestre">Semestre</option>
+        <option value="ano">Ano</option>
+        <option value="todos">Todos os dados</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Data de referência</label>
+      <input type="date" id="repDate">
+    </div>
+  </div>
+
+  <div style="margin-bottom:8px;">
+    <label style="margin-bottom:5px;display:block;">Atividades a incluir</label>
+    <div class="chip-group" id="actChips"></div>
+  </div>
+
+  <div class="row" style="margin-bottom:8px;gap:16px;">
+    <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;">
+      <input type="checkbox" id="repIncludeNotes" checked> Incluir descrições
+    </label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:.85rem;">
+      <input type="checkbox" id="repDailyDetail" checked> Detalhe diário
+    </label>
+  </div>
+
+  <div class="section-title" style="margin-top:4px;">Formato</div>
+  <div class="export-row">
+    <button class="secondary" id="expHtmlBtn">Exportar HTML</button>
+    <button class="secondary" id="expPdfBtn">Exportar PDF</button>
+    <button class="secondary" id="expFodtBtn">Exportar FODT</button>
+  </div>
+  <div id="repStatus" class="status"></div>
+</div>
+
+<script>
+// ─────────────────────────── Capacitor bridge ───────────────────────────
+const isAndroid = !!(window.Capacitor?.isNativePlatform?.());
+const CapFS   = window.Capacitor?.Plugins?.Filesystem;
+const CapShare = window.Capacitor?.Plugins?.Share;
+
+// ─────────────────────────── Estado ─────────────────────────────────────
+let entries = [];
+let currentPeriod = 'dia';
+
+// ─────────────────────────── Utilidades de data ──────────────────────────
+const pad = n => String(n).padStart(2,'0');
+const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const parts = s => { const [y,m,d]=s.split('-').map(Number); return {y,m,d}; };
+const toUTC = s => { const {y,m,d}=parts(s); return new Date(Date.UTC(y,m-1,d)); };
+const fromUTC = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`;
+function weekRange(s){
+  const date=toUTC(s), dow=(date.getUTCDay()+6)%7;
+  const mon=new Date(date); mon.setUTCDate(date.getUTCDate()-dow);
+  const sun=new Date(mon); sun.setUTCDate(mon.getUTCDate()+6);
+  return {start:fromUTC(mon),end:fromUTC(sun)};
+}
+function formatDuration(h){
+  const m=Math.round(h*60); return m%60>0?`${Math.floor(m/60)}h ${m%60}min`:`${Math.floor(m/60)}h`;
+}
+const fmtDateBR = s => { const {y,m,d}=parts(s); return `${pad(d)}/${pad(m)}/${y}`; };
+const MN = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MN3= ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+// ─────────────────────────── Parser / Serializer MD ──────────────────────
+function parseMD(text){
+  const lines=text.split('\n'); const result=[]; let cur=null;
+  for(const raw of lines){
+    const line=raw.trim();
+    const dm=line.match(/^##\s+(\d{4}-\d{2}-\d{2})/);
+    if(dm){cur=dm[1];continue;}
+    if(line.startsWith('## ')){cur=null;continue;}
+    if(cur){
+      const hm=line.match(/^-\s*(.+?):\s*(\d+)h(?:\s*(\d+)\s*min)?(?:\s*\|\s*(.+))?\s*$/i);
+      const dm2=!hm&&line.match(/^-\s*(.+?):\s*([\d.,]+)\s*h(?:\s*\|\s*(.+))?\s*$/i);
+      if(hm) result.push({date:cur,activity:hm[1].trim(),hours:parseInt(hm[2])+(hm[3]?parseInt(hm[3]):0)/60,note:hm[4]?.trim()||''});
+      else if(dm2) result.push({date:cur,activity:dm2[1].trim(),hours:parseFloat(dm2[2].replace(',','.')),note:dm2[3]?.trim()||''});
+    }
+  }
+  return result;
+}
+function serializeMD(list){
+  const byDate={};
+  list.forEach(e=>(byDate[e.date]=byDate[e.date]||[]).push(e));
+  const lines=['# Registro de Horas — Tempus Fugit',''];
+  Object.keys(byDate).sort().forEach(date=>{
+    lines.push(`## ${date}`);
+    byDate[date].forEach(e=>lines.push(`- ${e.activity}: ${formatDuration(e.hours)}${e.note?` | ${e.note}`:''}`));
+    lines.push('');
+  });
+  const totals=totalsByActivity(list);
+  const sorted=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]);
+  let grand=0; lines.push('## Resumo geral');
+  sorted.forEach(a=>{lines.push(`- ${a}: ${formatDuration(totals[a])}`);grand+=totals[a];});
+  lines.push(`- **Total: ${formatDuration(grand)}**`,'');
+  return lines.join('\n');
+}
+function totalsByActivity(list){
+  const t={}; list.forEach(e=>t[e.activity]=(t[e.activity]||0)+e.hours);
+  Object.keys(t).forEach(k=>t[k]=Math.round(t[k]*100)/100); return t;
+}
+
+// ─────────────────────────── Persistência ────────────────────────────────
+function load(){ try{return JSON.parse(localStorage.getItem('tfEntries')||'[]');}catch{return [];} }
+function save(){ localStorage.setItem('tfEntries',JSON.stringify(entries)); }
+function setStatus(msg,err=false){
+  const el=document.getElementById('statusLine');
+  el.textContent=msg; el.style.color=err?'var(--danger)':'var(--muted)';
+}
+
+// ─────────────────────────── Período ─────────────────────────────────────
+function inPeriod(ed,period,ref){
+  if(period==='dia') return ed===ref;
+  if(period==='todos') return true;
+  const e=parts(ed),r=parts(ref);
+  if(period==='semana'){const {start,end}=weekRange(ref);return ed>=start&&ed<=end;}
+  if(period==='mes') return e.y===r.y&&e.m===r.m;
+  if(period==='semestre'){const sE=e.m<=6?1:2,sR=r.m<=6?1:2;return e.y===r.y&&sE===sR;}
+  if(period==='ano') return e.y===r.y;
+  return false;
+}
+function periodLabelText(period,ref){
+  const r=parts(ref);
+  if(period==='dia') return `Dia: ${fmtDateBR(ref)}`;
+  if(period==='todos') return 'Todos os registros';
+  if(period==='semana'){const {start,end}=weekRange(ref);return `Semana: ${fmtDateBR(start)} a ${fmtDateBR(end)}`;}
+  if(period==='mes') return `Mês: ${MN[r.m-1]} de ${r.y}`;
+  if(period==='semestre') return `Semestre: ${r.m<=6?'1º':'2º'} semestre de ${r.y}`;
+  if(period==='ano') return `Ano: ${r.y}`;
+}
+
+// ─────────────────────────── Render ──────────────────────────────────────
+function renderActivityList(){
+  document.getElementById('activityList').innerHTML=
+    [...new Set(entries.map(e=>e.activity))].map(n=>`<option value="${n}">`).join('');
+}
+function renderDayEntries(){
+  const date=document.getElementById('refDate').value;
+  const list=entries.map((e,i)=>({...e,idx:i})).filter(e=>e.date===date);
+  const c=document.getElementById('dayEntries');
+  if(!list.length){c.innerHTML='<div class="empty">Nenhuma atividade nesta data.</div>';return;}
+  const total=list.reduce((s,e)=>s+e.hours,0);
+  c.innerHTML=list.map(e=>`
+    <div class="entry-item" style="flex-direction:column;align-items:flex-start;gap:2px;">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+        <span style="font-weight:500;">${e.activity} — ${formatDuration(e.hours)}</span>
+        <button class="danger" data-idx="${e.idx}">Excluir</button>
+      </div>
+      ${e.note?`<span style="font-size:.8rem;color:var(--muted);">${e.note}</span>`:''}
+    </div>`).join('')+
+    `<div class="entry-item" style="border-top:2px solid var(--ink);font-weight:700;">
+      <span>Total do dia</span><span>${formatDuration(total)}</span>
+    </div>`;
+  c.querySelectorAll('button[data-idx]').forEach(b=>b.addEventListener('click',()=>removeEntry(+b.dataset.idx)));
+}
+function renderChart(list,period,ref){
+  const canvas=document.getElementById('periodChart');
+  if(period==='dia'||!list.length){canvas.style.display='none';return;}
+  let labels=[],values=[];
+  if(period==='semana'){
+    const {start}=weekRange(ref);
+    ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].forEach((n,i)=>{
+      const d=new Date(toUTC(start));d.setUTCDate(d.getUTCDate()+i);
+      const ds=fromUTC(d);labels.push(n);values.push(list.filter(e=>e.date===ds).reduce((s,e)=>s+e.hours,0));
+    });
+  } else if(period==='mes'){
+    const wm={};
+    list.forEach(e=>{const ws=weekRange(e.date).start;wm[ws]=(wm[ws]||0)+e.hours;});
+    Object.keys(wm).sort().forEach(ws=>{labels.push(fmtDateBR(ws).slice(0,5));values.push(wm[ws]);});
+  } else if(period==='semestre'){
+    const r=parts(ref),s0=r.m<=6?1:7;
+    for(let m=s0;m<s0+6;m++){labels.push(MN3[m-1]);values.push(list.filter(e=>{const p=parts(e.date);return p.y===r.y&&p.m===m;}).reduce((s,e)=>s+e.hours,0));}
+  } else if(period==='ano'){
+    const r=parts(ref);
+    for(let m=1;m<=12;m++){labels.push(MN3[m-1]);values.push(list.filter(e=>{const p=parts(e.date);return p.y===r.y&&p.m===m;}).reduce((s,e)=>s+e.hours,0));}
+  } else { canvas.style.display='none'; return; }
+  drawChart(canvas,labels,values);
+}
+function drawChart(canvas,labels,values){
+  const DPR=window.devicePixelRatio||1,W=canvas.parentElement.clientWidth-2;
+  const PAD={top:24,right:16,bottom:46,left:54},BAR_H=160,H=BAR_H+PAD.top+PAD.bottom;
+  canvas.style.display='block';canvas.width=W*DPR;canvas.height=H*DPR;canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');ctx.scale(DPR,DPR);ctx.clearRect(0,0,W,H);
+  const maxVal=Math.max(...values,0.01),maxMin=Math.ceil(maxVal*60/30)*30;
+  const n=labels.length,innerW=W-PAD.left-PAD.right;
+  const barW=Math.max(12,Math.min(48,innerW/n*0.55)),gap=(innerW-barW*n)/(n+1);
+  const fs=Math.min(11,Math.max(8,W/65));
+  ctx.strokeStyle='#e1ddd3';ctx.lineWidth=1;
+  const steps=Math.min(6,Math.ceil(maxMin/30));
+  for(let i=0;i<=steps;i++){
+    const val=(maxMin/steps)*i,y=PAD.top+BAR_H-(val/maxMin)*BAR_H;
+    ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(W-PAD.right,y);ctx.stroke();
+    ctx.fillStyle='#6b6c64';ctx.font=`${fs}px system-ui`;ctx.textAlign='right';
+    ctx.fillText(val===0?'0':formatDuration(val/60),PAD.left-5,y+4);
+  }
+  labels.forEach((lbl,i)=>{
+    const v=values[i],x=PAD.left+gap+i*(barW+gap),bh=Math.max(0,(v/(maxMin/60))*BAR_H),y=PAD.top+BAR_H-bh;
+    ctx.fillStyle=v>0?'#2c5f5a':'#e1ddd3';
+    ctx.beginPath();
+    if(v>0)ctx.roundRect(x,y,barW,bh,[4,4,0,0]);else ctx.rect(x,PAD.top+BAR_H-2,barW,2);
+    ctx.fill();
+    if(v>0){ctx.fillStyle='#23241f';ctx.font=`bold ${fs}px system-ui`;ctx.textAlign='center';ctx.fillText(formatDuration(v),x+barW/2,y-5);}
+    ctx.fillStyle='#6b6c64';ctx.font=`${fs}px system-ui`;ctx.textAlign='center';ctx.fillText(lbl,x+barW/2,PAD.top+BAR_H+16);
+  });
+}
+function renderPeriod(){
+  const ref=document.getElementById('refDate').value;
+  document.getElementById('periodLabel').textContent=periodLabelText(currentPeriod,ref);
+  const list=entries.filter(e=>inPeriod(e.date,currentPeriod,ref));
+  const c=document.getElementById('periodTable');
+  if(!list.length){c.innerHTML='<div class="empty">Nenhum registro neste período.</div>';document.getElementById('periodChart').style.display='none';return;}
+  const totals=totalsByActivity(list);
+  const sorted=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]);
+  const grand=sorted.reduce((s,a)=>s+totals[a],0);
+  const days=new Set(list.map(e=>e.date)).size;
+  const rowsHTML=sorted.map(a=>{
+    const ae=list.filter(e=>e.activity===a).sort((x,y)=>x.date.localeCompare(y.date));
+    const hasC=ae.some(e=>e.note)||ae.length>1;
+    const logRows=ae.map(e=>`<tr style="background:var(--accent-light);">
+      <td style="padding-left:16px;font-size:.8rem;color:var(--muted);">${fmtDateBR(e.date)}</td>
+      <td style="font-size:.8rem;"><span style="color:var(--muted);">${formatDuration(e.hours)}</span>${e.note?` <span>— ${e.note}</span>`:''}</td>
+    </tr>`).join('');
+    return `<tr data-act="${a}" style="cursor:${hasC?'pointer':'default'};">
+      <td>${a}${hasC?`<span data-act="${a}" style="font-size:.7rem;color:var(--muted);margin-left:5px;display:inline-block;transition:transform .15s;">▶</span>`:''}</td>
+      <td>${formatDuration(totals[a])}</td>
+    </tr>
+    <tr data-log="${a}" style="display:none;"><td colspan="2" style="padding:0;"><table style="width:100%;margin:0;">${logRows}</table></td></tr>`;
+  }).join('');
+  c.innerHTML=`<table><thead><tr><th>Atividade</th><th>Horas</th></tr></thead><tbody>${rowsHTML}</tbody>
+    <tfoot><tr><td>Total (${days} dia${days>1?'s':''})</td><td>${formatDuration(grand)}</td></tr></tfoot></table>`;
+  c.querySelectorAll('tr[data-act]').forEach(row=>{
+    row.addEventListener('click',()=>{
+      const a=row.dataset.act;
+      const log=c.querySelector(`tr[data-log="${CSS.escape(a)}"]`);
+      const arr=c.querySelector(`span[data-act="${CSS.escape(a)}"]`);
+      if(!log)return;
+      const open=log.style.display!=='none';
+      log.style.display=open?'none':'';
+      if(arr)arr.style.transform=open?'':'rotate(90deg)';
+    });
+  });
+  renderChart(list,currentPeriod,ref);
+}
+function renderAll(){renderActivityList();renderDayEntries();renderPeriod();renderActChips();}
+
+// ─────────────────────────── Chips de atividade (relatório) ──────────────
+let selectedActivities=new Set();
+function renderActChips(){
+  const names=[...new Set(entries.map(e=>e.activity))];
+  const c=document.getElementById('actChips');
+  // "Todas" chip
+  let html=`<span class="chip${selectedActivities.size===0?' selected':''}" data-act="__all__">Todas</span>`;
+  html+=names.map(n=>`<span class="chip${selectedActivities.has(n)?' selected':''}" data-act="${n}">${n}</span>`).join('');
+  c.innerHTML=html;
+  c.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      const a=chip.dataset.act;
+      if(a==='__all__'){selectedActivities.clear();}
+      else{
+        if(selectedActivities.has(a))selectedActivities.delete(a);
+        else selectedActivities.add(a);
+      }
+      renderActChips();
+    });
+  });
+}
+
+// ─────────────────────────── CRUD ────────────────────────────────────────
+document.getElementById('addBtn').addEventListener('click',async()=>{
+  const date=document.getElementById('refDate').value;
+  const activity=document.getElementById('activityInput').value.trim();
+  const h=parseInt(document.getElementById('hoursInput').value)||0;
+  const m=parseInt(document.getElementById('minutesInput').value)||0;
+  const note=document.getElementById('noteInput').value.trim();
+  const hours=h+m/60;
+  if(!date){alert('Escolha uma data.');return;}
+  if(!activity){alert('Informe a atividade.');return;}
+  if(hours<=0){alert('Informe horas ou minutos.');return;}
+  entries.push({date,activity,hours,note});
+  ['activityInput','hoursInput','minutesInput','noteInput'].forEach(id=>document.getElementById(id).value='');
+  save(); setStatus('Salvo.'); renderAll();
+});
+async function removeEntry(i){entries.splice(i,1);save();setStatus('Entrada removida.');renderAll();}
+
+// ─────────────────────────── Importar/Exportar MD ────────────────────────
+document.getElementById('importInput').addEventListener('change',async e=>{
+  const file=e.target.files[0]; if(!file)return;
+  if(!confirm('Importar vai substituir todos os dados atuais. Continuar?'))return;
+  entries=parseMD(await file.text()); save(); renderAll(); setStatus(`Importado: ${file.name}`);
+});
+document.getElementById('exportMdBtn').addEventListener('click',()=>shareText(serializeMD(entries),'horas.md','text/markdown'));
+document.getElementById('clearDataBtn').addEventListener('click',()=>{
+  if(confirm('Apagar todos os dados? Esta ação não pode ser desfeita.'))
+    {entries=[];save();renderAll();setStatus('Dados apagados.');}
+});
+
+// ─────────────────────────── Compartilhamento / Download ─────────────────
+async function shareText(content,filename,mime){
+  if(isAndroid && CapFS && CapShare){
+    try{
+      const {uri}=await CapFS.writeFile({path:filename,data:btoa(unescape(encodeURIComponent(content))),directory:'CACHE'});
+      await CapShare.share({title:'Tempus Fugit – '+filename,url:uri});
+      return;
+    }catch(err){console.warn('Capacitor share failed',err);}
+  }
+  // fallback: download via browser
+  const blob=new Blob([content],{type:mime});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);
+}
+async function shareBlob(blob,filename){
+  if(isAndroid && CapFS && CapShare){
+    try{
+      const reader=new FileReader();
+      const b64=await new Promise(r=>{reader.onload=()=>r(reader.result.split(',')[1]);reader.readAsDataURL(blob);});
+      const {uri}=await CapFS.writeFile({path:filename,data:b64,directory:'CACHE'});
+      await CapShare.share({title:'Tempus Fugit – '+filename,url:uri});
+      return;
+    }catch(err){console.warn('Capacitor share failed',err);}
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);
+}
+
+// ─────────────────────────── Geração de relatório ────────────────────────
+function getReportData(){
+  const period=document.getElementById('repPeriod').value;
+  const ref=document.getElementById('repDate').value||todayStr();
+  const incNotes=document.getElementById('repIncludeNotes').checked;
+  const dailyDetail=document.getElementById('repDailyDetail').checked;
+  const actFilter=selectedActivities.size>0?selectedActivities:null;
+  const list=entries.filter(e=>inPeriod(e.date,period,ref)&&(!actFilter||actFilter.has(e.activity)));
+  const totals=totalsByActivity(list);
+  const sorted=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]);
+  const grand=sorted.reduce((s,a)=>s+totals[a],0);
+  const days=new Set(list.map(e=>e.date)).size;
+  const title=`Tempus Fugit — ${periodLabelText(period,ref)}`;
+  return {list,totals,sorted,grand,days,title,period,ref,incNotes,dailyDetail};
+}
+
+// ─── HTML ───
+function buildHtmlReport(){
+  const {list,totals,sorted,grand,days,title,incNotes,dailyDetail}=getReportData();
+  if(!list.length)return null;
+  const byDate={};
+  if(dailyDetail) list.forEach(e=>(byDate[e.date]=byDate[e.date]||[]).push(e));
+  const actRows=sorted.map(a=>{
+    const ae=list.filter(e=>e.activity===a).sort((x,y)=>x.date.localeCompare(y.date));
+    let detail='';
+    if(dailyDetail) detail=`<table style="width:100%;font-size:12px;margin-top:4px;border-collapse:collapse;">`+
+      ae.map(e=>`<tr><td style="padding:2px 8px;color:#666;">${fmtDateBR(e.date)}</td><td style="padding:2px 4px;color:#666;">${formatDuration(e.hours)}</td>${incNotes&&e.note?`<td style="padding:2px 4px;color:#333;">${e.note}</td>`:''}</tr>`).join('')+`</table>`;
+    return `<tr><td style="padding:6px 4px;border-bottom:1px solid #e1ddd3;vertical-align:top;">${a}${detail}</td><td style="padding:6px 4px;border-bottom:1px solid #e1ddd3;font-weight:600;">${formatDuration(totals[a])}</td></tr>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${title}</title>
+<style>body{font-family:system-ui,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;color:#23241f;}
+h1{font-size:1.4rem;color:#2c5f5a;}h2{font-size:1rem;color:#6b6c64;font-weight:400;}
+table{width:100%;border-collapse:collapse;}th{text-align:left;color:#6b6c64;font-size:.8rem;text-transform:uppercase;padding:4px;}
+tfoot td{font-weight:700;border-top:2px solid #23241f;padding:6px 4px;}</style></head>
+<body><h1>${title}</h1><h2>${days} dia${days>1?'s':''} registrado${days>1?'s':''} · Total: ${formatDuration(grand)}</h2>
+<table><thead><tr><th>Atividade</th><th>Horas</th></tr></thead><tbody>${actRows}</tbody>
+<tfoot><tr><td>Total</td><td>${formatDuration(grand)}</td></tr></tfoot></table>
+<p style="font-size:.75rem;color:#aaa;margin-top:40px;">Gerado pelo Tempus Fugit em ${new Date().toLocaleString('pt-BR')}</p>
+</body></html>`;
+}
+
+// ─── FODT (Flat OpenDocument Text — XML puro, abre no LibreOffice/Writer) ───
+function buildFodtReport(){
+  const {list,totals,sorted,grand,days,title,incNotes,dailyDetail}=getReportData();
+  if(!list.length)return null;
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const actRows=sorted.map(a=>{
+    const ae=list.filter(e=>e.activity===a).sort((x,y)=>x.date.localeCompare(y.date));
+    let lines=[`<text:p text:style-name="Table_Contents"><text:span text:style-name="Bold">${esc(a)}</text:span></text:p>`];
+    if(dailyDetail) ae.forEach(e=>{
+      let txt=`${fmtDateBR(e.date)}: ${formatDuration(e.hours)}`;
+      if(incNotes&&e.note) txt+=` — ${e.note}`;
+      lines.push(`<text:p text:style-name="Table_Contents"><text:span text:style-name="Muted">    ${esc(txt)}</text:span></text:p>`);
+    });
+    return `<table:table-row>
+  <table:table-cell table:style-name="Table1.A1">${lines.join('')}</table:table-cell>
+  <table:table-cell table:style-name="Table1.A1"><text:p text:style-name="Table_Contents">${esc(formatDuration(totals[a]))}</text:p></table:table-cell>
+</table:table-row>`;
+  }).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+  xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+  xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+  xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+  xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+  office:mimetype="application/vnd.oasis.opendocument.text">
+<office:automatic-styles>
+  <style:style style:name="Bold" style:family="text"><style:text-properties fo:font-weight="bold"/></style:style>
+  <style:style style:name="Muted" style:family="text"><style:text-properties fo:color="#6b6c64"/></style:style>
+  <style:style style:name="Heading1" style:family="paragraph"><style:text-properties fo:font-size="16pt" fo:font-weight="bold" fo:color="#2c5f5a"/></style:style>
+  <style:style style:name="Sub" style:family="paragraph"><style:text-properties fo:font-size="10pt" fo:color="#6b6c64"/></style:style>
+  <style:style style:name="Table_Contents" style:family="paragraph"/>
+  <style:style style:name="Table1.A1" style:family="table-cell"><style:table-cell-properties fo:border="0.5pt solid #e1ddd3" fo:padding="4pt"/></style:style>
+  <style:style style:name="Table1" style:family="table"><style:table-properties style:width="16cm"/></style:style>
+</office:automatic-styles>
+<office:body><office:text>
+<text:p text:style-name="Heading1">${esc(title)}</text:p>
+<text:p text:style-name="Sub">${days} dia${days>1?'s':''} · Total: ${esc(formatDuration(grand))}</text:p>
+<text:p/>
+<table:table table:name="Horas" table:style-name="Table1">
+  <table:table-column table:style-name="Table1.A"/>
+  <table:table-column table:style-name="Table1.A"/>
+  <table:table-row>
+    <table:table-cell table:style-name="Table1.A1"><text:p text:style-name="Table_Contents"><text:span text:style-name="Bold">Atividade</text:span></text:p></table:table-cell>
+    <table:table-cell table:style-name="Table1.A1"><text:p text:style-name="Table_Contents"><text:span text:style-name="Bold">Horas</text:span></text:p></table:table-cell>
+  </table:table-row>
+  ${actRows}
+  <table:table-row>
+    <table:table-cell table:style-name="Table1.A1"><text:p text:style-name="Table_Contents"><text:span text:style-name="Bold">Total (${days} dia${days>1?'s':''})</text:span></text:p></table:table-cell>
+    <table:table-cell table:style-name="Table1.A1"><text:p text:style-name="Table_Contents"><text:span text:style-name="Bold">${esc(formatDuration(grand))}</text:span></text:p></table:table-cell>
+  </table:table-row>
+</table:table>
+<text:p/>
+<text:p text:style-name="Sub">Gerado pelo Tempus Fugit em ${new Date().toLocaleString('pt-BR')}</text:p>
+</office:text></office:body></office:document>`;
+}
+
+// ─── PDF via jsPDF ───
+async function buildPdfReport(){
+  const {list,totals,sorted,grand,days,title,incNotes,dailyDetail}=getReportData();
+  if(!list.length)return null;
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210, margin=18, cw=W-margin*2;
+  let y=margin+6;
+  // Título
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(44,95,90);
+  doc.text(title,margin,y);y+=8;
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(107,108,100);
+  doc.text(`${days} dia${days>1?'s':''} registrado${days>1?'s':''} · Total: ${formatDuration(grand)}`,margin,y);y+=10;
+  // Cabeçalho da tabela
+  doc.setFillColor(230,239,237);doc.rect(margin,y,cw,7,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(107,108,100);
+  doc.text('ATIVIDADE',margin+2,y+5);doc.text('HORAS',margin+cw-25,y+5);y+=7;
+  // Linhas
+  sorted.forEach(a=>{
+    const lineH=7;
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(35,36,31);
+    doc.text(a,margin+2,y+5);
+    doc.text(formatDuration(totals[a]),margin+cw-25,y+5);
+    doc.setDrawColor(225,221,211);doc.line(margin,y+lineH,margin+cw,y+lineH);
+    y+=lineH;
+    if(dailyDetail){
+      const ae=list.filter(e=>e.activity===a).sort((x,v)=>x.date.localeCompare(v.date));
+      ae.forEach(e=>{
+        if(y>270){doc.addPage();y=margin;}
+        doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(107,108,100);
+        let txt=`${fmtDateBR(e.date)}:  ${formatDuration(e.hours)}`;
+        if(incNotes&&e.note) txt+=`  —  ${e.note}`;
+        const lines=doc.splitTextToSize(txt,cw-10);
+        lines.forEach(l=>{doc.text(l,margin+6,y+4);y+=5;});
+      });
+    }
+    if(y>270){doc.addPage();y=margin;}
+  });
+  // Rodapé total
+  y+=2;
+  doc.setDrawColor(35,36,31);doc.setLineWidth(0.5);doc.line(margin,y,margin+cw,y);y+=6;
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(35,36,31);
+  doc.text(`Total (${days} dia${days>1?'s':''})`,margin+2,y);doc.text(formatDuration(grand),margin+cw-25,y);y+=10;
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(170,170,170);
+  doc.text(`Gerado pelo Tempus Fugit em ${new Date().toLocaleString('pt-BR')}`,margin,y);
+  return doc.output('blob');
+}
+
+// ─────────────────────────── Botões de exportação ────────────────────────
+function repFilename(ext){
+  const period=document.getElementById('repPeriod').value;
+  const ref=(document.getElementById('repDate').value||todayStr()).replace(/-/g,'');
+  return `tempusfugit_${period}_${ref}.${ext}`;
+}
+function setRepStatus(msg,err=false){
+  const el=document.getElementById('repStatus');
+  el.textContent=msg;el.style.color=err?'var(--danger)':'var(--muted)';
+}
+document.getElementById('expHtmlBtn').addEventListener('click',()=>{
+  const html=buildHtmlReport();
+  if(!html){setRepStatus('Nenhum dado no período selecionado.',true);return;}
+  shareText(html,repFilename('html'),'text/html');setRepStatus('Relatório HTML gerado.');
+});
+document.getElementById('expFodtBtn').addEventListener('click',()=>{
+  const fodt=buildFodtReport();
+  if(!fodt){setRepStatus('Nenhum dado no período selecionado.',true);return;}
+  shareText(fodt,repFilename('fodt'),'application/vnd.oasis.opendocument.text-flat-xml');
+  setRepStatus('Relatório FODT gerado (abre no LibreOffice Writer).');
+});
+document.getElementById('expPdfBtn').addEventListener('click',async()=>{
+  setRepStatus('Gerando PDF...');
+  const blob=await buildPdfReport();
+  if(!blob){setRepStatus('Nenhum dado no período selecionado.',true);return;}
+  await shareBlob(blob,repFilename('pdf'));setRepStatus('Relatório PDF gerado.');
+});
+
+// ─────────────────────────── Período tabs ────────────────────────────────
+document.getElementById('periodTabs').addEventListener('click',e=>{
+  const btn=e.target.closest('button[data-period]');if(!btn)return;
+  currentPeriod=btn.dataset.period;
+  document.querySelectorAll('#periodTabs button').forEach(b=>b.classList.toggle('active',b===btn));
+  renderPeriod();
+});
+document.getElementById('refDate').addEventListener('change',renderAll);
+
+// ─────────────────────────── Init ────────────────────────────────────────
+entries=load();
+document.getElementById('refDate').value=todayStr();
+document.getElementById('repDate').value=todayStr();
+setStatus(entries.length?`${entries.length} registro(s) carregado(s).`:'Nenhum dado ainda. Adicione uma atividade.');
+renderAll();
+</script>
+</body>
+</html>

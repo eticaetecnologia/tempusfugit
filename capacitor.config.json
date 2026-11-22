@@ -1,0 +1,16 @@
+{
+  "appId": "br.com.eticaetecnologia.tempusfugit",
+  "appName": "Tempus Fugit",
+  "webDir": "web",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "Filesystem": {
+      "directory": "DOCUMENTS"
+    }
+  }
+}
