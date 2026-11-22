@@ -39,16 +39,19 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses || true
+      - name: Install Android SDK packages
+        run: |
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
       - name: Build debug APK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
         run: cd android && ./gradlew assembleDebug --no-daemon
 
       - name: Rename APK
@@ -64,8 +67,8 @@ jobs:
 
             **Instalação:**
             1. Baixe o arquivo `tempusfugit.apk` abaixo
-            2. No Android, vá em Configurações → Segurança → Instalar apps desconhecidos
-            3. Abra o arquivo baixado e instale
+            2. No Android: Configurações → Segurança → Instalar apps desconhecidos
+            3. Abra o arquivo e instale
           files: tempusfugit.apk
           prerelease: false
           make_latest: true
