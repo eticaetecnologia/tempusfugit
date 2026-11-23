@@ -188,10 +188,10 @@
 </div>
 
 <script>
-// ─────────────────────────── Capacitor bridge ───────────────────────────
-const isAndroid = !!(window.Capacitor?.isNativePlatform?.());
-const CapFS   = window.Capacitor?.Plugins?.Filesystem;
-const CapShare = window.Capacitor?.Plugins?.Share;
+// ─────────────────────────── Capacitor bridge (lazy) ────────────────────
+const isAndroid = () => !!(window.Capacitor?.isNativePlatform?.());
+const getCapFS   = () => window.Capacitor?.Plugins?.Filesystem;
+const getCapShare = () => window.Capacitor?.Plugins?.Share;
 
 // ─────────────────────────── Estado ─────────────────────────────────────
 let entries = [];
@@ -420,6 +420,12 @@ function renderActChips(){
 }
 
 // ─────────────────────────── CRUD ────────────────────────────────────────
+function setAddError(msg){
+  let el=document.getElementById('addError');
+  if(!el){el=document.createElement('div');el.id='addError';el.style.cssText='font-size:.78rem;color:var(--danger);margin-top:6px;';document.getElementById('addBtn').after(el);}
+  el.textContent=msg;
+  if(msg)setTimeout(()=>{el.textContent='';},3000);
+}
 document.getElementById('addBtn').addEventListener('click',async()=>{
   const date=document.getElementById('refDate').value;
   const activity=document.getElementById('activityInput').value.trim();
@@ -427,9 +433,10 @@ document.getElementById('addBtn').addEventListener('click',async()=>{
   const m=parseInt(document.getElementById('minutesInput').value)||0;
   const note=document.getElementById('noteInput').value.trim();
   const hours=h+m/60;
-  if(!date){alert('Escolha uma data.');return;}
-  if(!activity){alert('Informe a atividade.');return;}
-  if(hours<=0){alert('Informe horas ou minutos.');return;}
+  if(!date){setAddError('Escolha uma data.');return;}
+  if(!activity){setAddError('Informe a atividade.');return;}
+  if(hours<=0){setAddError('Informe horas ou minutos.');return;}
+  setAddError('');
   entries.push({date,activity,hours,note});
   ['activityInput','hoursInput','minutesInput','noteInput'].forEach(id=>document.getElementById(id).value='');
   save(); setStatus('Salvo.'); renderAll();
@@ -439,18 +446,46 @@ async function removeEntry(i){entries.splice(i,1);save();setStatus('Entrada remo
 // ─────────────────────────── Importar/Exportar MD ────────────────────────
 document.getElementById('importInput').addEventListener('change',async e=>{
   const file=e.target.files[0]; if(!file)return;
-  if(!confirm('Importar vai substituir todos os dados atuais. Continuar?'))return;
-  entries=parseMD(await file.text()); save(); renderAll(); setStatus(`Importado: ${file.name}`);
+  // Sem confirm() — bloqueado no WebView Android. Importa diretamente.
+  try {
+    const parsed=parseMD(await file.text());
+    if(parsed.length===0){setStatus('Nenhum registro encontrado no arquivo.',true);e.target.value='';return;}
+    entries=parsed; save(); renderAll();
+    setStatus(`✓ Importado: ${file.name} (${parsed.length} registro${parsed.length>1?'s':''})`);
+  } catch(err){
+    setStatus('Erro ao ler o arquivo: '+err.message,true);
+  }
+  e.target.value=''; // permite reimportar o mesmo arquivo
 });
 document.getElementById('exportMdBtn').addEventListener('click',()=>shareText(serializeMD(entries),'horas.md','text/markdown'));
+
+// Limpar tudo: botão de dois toques (evita confirm() bloqueado no WebView)
+let clearPending=false, clearTimer=null;
 document.getElementById('clearDataBtn').addEventListener('click',()=>{
-  if(confirm('Apagar todos os dados? Esta ação não pode ser desfeita.'))
-    {entries=[];save();renderAll();setStatus('Dados apagados.');}
+  if(!clearPending){
+    clearPending=true;
+    document.getElementById('clearDataBtn').textContent='Confirmar exclusão';
+    document.getElementById('clearDataBtn').style.background='var(--danger)';
+    document.getElementById('clearDataBtn').style.color='#fff';
+    clearTimer=setTimeout(()=>{
+      clearPending=false;
+      document.getElementById('clearDataBtn').textContent='Limpar tudo';
+      document.getElementById('clearDataBtn').style.background='';
+      document.getElementById('clearDataBtn').style.color='';
+    },4000);
+  } else {
+    clearTimeout(clearTimer); clearPending=false;
+    document.getElementById('clearDataBtn').textContent='Limpar tudo';
+    document.getElementById('clearDataBtn').style.background='';
+    document.getElementById('clearDataBtn').style.color='';
+    entries=[];save();renderAll();setStatus('Dados apagados.');
+  }
 });
 
 // ─────────────────────────── Compartilhamento / Download ─────────────────
 async function shareText(content,filename,mime){
-  if(isAndroid && CapFS && CapShare){
+  const CapFS=getCapFS(), CapShare=getCapShare();
+  if(isAndroid() && CapFS && CapShare){
     try{
       const {uri}=await CapFS.writeFile({path:filename,data:btoa(unescape(encodeURIComponent(content))),directory:'CACHE'});
       await CapShare.share({title:'Tempus Fugit – '+filename,url:uri});
@@ -462,7 +497,8 @@ async function shareText(content,filename,mime){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);
 }
 async function shareBlob(blob,filename){
-  if(isAndroid && CapFS && CapShare){
+  const CapFS=getCapFS(), CapShare=getCapShare();
+  if(isAndroid() && CapFS && CapShare){
     try{
       const reader=new FileReader();
       const b64=await new Promise(r=>{reader.onload=()=>r(reader.result.split(',')[1]);reader.readAsDataURL(blob);});
